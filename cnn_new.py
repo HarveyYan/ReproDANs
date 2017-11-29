@@ -5,7 +5,7 @@ import torchvision.datasets as dsets
 from torch.autograd import Variable
 from torch.nn import functional
 import os
-from my_dataset import MYCIFAR10
+from mydataset import MYCIFAR10
 
 '''
 Hyperparameters
@@ -15,21 +15,45 @@ dataset_identifier={
     'MNIST' : 0,
     'CIFAR10' : 1
 }
+image_size={
+    'MNIST': (28,28),
+    'CIFAR10': (32,32)
+}
 batch_size = 100
 n_iters = 10**5
 validation_ratio = 0.1
 
+# pad_vgg options pad all images to 224*224
+# an easy way out, that we could simply use the original vgg model
+def get_data(dataset_name, pad_vgg = True):
 
-def get_data(dataset_name):
-    transform = transforms.Compose(
-        [transforms.ToTensor(),
-         transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
+    pad = []
+    if pad_vgg is True:
+        size = image_size[dataset_name]
+        pad.append(int((224 - size[1]) / 2)) # padding to the left
+        pad.append(int((224 - size[1]) / 2)) # padding to the right
+        pad.append(int((224 - size[0]) / 2)) # padding to the top
+        pad.append(int((224 - size[0]) / 2)) # padding to the bottom
+        transform = transforms.Compose(
+            [
+                transforms.Pad(*pad),
+                transforms.ToTensor(),
+                transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+            ]
+        )
+    else:
+        transform = transforms.Compose(
+            [
+                transforms.ToTensor(),
+                transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+            ]
+        )
 
     train_dataset = eval('MY' + dataset_name)(ratio = validation_ratio,
-                                                root='./data',
-                                                train=True,
-                                                transform=transform,
-                                                download=True)
+                                            root='./data',
+                                            train=True,
+                                            transform=transform,
+                                            download=True)
 
     validat_dataset = train_dataset.get_validat_set()
 

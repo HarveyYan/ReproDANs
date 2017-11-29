@@ -18,13 +18,14 @@ class MYCIFAR10(dsets.CIFAR10):
             pass
 
     def get_validat_set(self):
-        transform = transforms.Compose(
-            [transforms.ToTensor(),
-             transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
+
+        # transform = transforms.Compose(
+        # [transforms.ToTensor(),
+        #  transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
 
         validat = dsets.CIFAR10(root=self.root,
                                 train=False,
-                                transform=transform,
+                                transform=self.transform,
                                 download=False)
 
         validat.train_data = self.validat_data
