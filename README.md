@@ -12,6 +12,7 @@ As of currently, we have evaluated three models.
 ![Validation Accuracy](graph/valid_acc.png)
 
 Test accuracy:
+
 | Test Acc     | CIFAR10 |
 |--------------|---------|
 | VGGB S       | 82.22   |
