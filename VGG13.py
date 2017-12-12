@@ -1,7 +1,7 @@
 import torch
 import torch.utils.model_zoo as model_zoo
 import torch.nn as nn
-from cnn_new import ContConv2d
+from cnn_basic import ContConv2d
 import math
 
 # pad all image to size 224
@@ -26,14 +26,14 @@ class MYVGG13(nn.Module):
     }
 
     # pre-trained option allows us to use parameters from the imagenet
-    def __init__(self, pretrained = False, num_class = 1000, batch_norm = False):
+    def __init__(self, dataset, pretrained = False, num_classes = 1000, batch_norm = True):
         super(MYVGG13, self).__init__()
         self.pretrained = pretrained
-        self.num_class = num_class
+        self.num_classes = num_classes
         self.batch_norm = batch_norm
 
         self.features = self.make_layers()
-        self.classifiers = self.make_classifier()
+        self.classifiers = self.make_classifier(dataset)
 
         if pretrained:
             if batch_norm:
@@ -56,21 +56,32 @@ class MYVGG13(nn.Module):
                 in_channels = v
         return nn.Sequential(*layers)
 
-    def make_classifier(self):
-        return nn.Sequential(
-            nn.Linear(512 * 7 * 7, 4096),
-            nn.ReLU(True),
-            nn.Dropout(),
-            nn.Linear(4096, 4096),
-            nn.ReLU(True),
-            nn.Dropout(),
-            nn.Linear(4096, self.num_classes),
-        )
+    def make_classifier(self, dataset):
+        if dataset == 'CIFAR10':
+            return nn.Sequential(
+                nn.Linear(512 * 1 * 1, 4096),
+                nn.ReLU(True),
+                nn.Dropout(),
+                nn.Linear(4096, 4096),
+                nn.ReLU(True),
+                nn.Dropout(),
+                nn.Linear(4096, self.num_classes),
+            )
+        else:
+            return nn.Sequential(
+                nn.Linear(512 * 7 * 7, 4096),
+                nn.ReLU(True),
+                nn.Dropout(),
+                nn.Linear(4096, 4096),
+                nn.ReLU(True),
+                nn.Dropout(),
+                nn.Linear(4096, self.num_classes),
+            )
 
     def forward(self, x):
         x = self.features(x)
         x = x.view(x.size(0), -1)
-        x = self.classifier(x)
+        x = self.classifiers(x)
         return x
 
     def _initialize_weights(self):
@@ -93,8 +104,9 @@ class MYVGG13(nn.Module):
         own_state = self.state_dict()
         for name, param in state_dict.items():
             # only copy the filters in convolutional layers
-            if not name.lower().startswith('cnn'):
-                continue
+            # TODO no name starts with cnn!!!!
+            # if not name.lower().startswith('cnn'):
+            #     continue
             if name not in own_state:
                 raise KeyError('unexpected key "{}" in state_dict'.format(name))
             if isinstance(param, nn.Parameter):
@@ -111,9 +123,11 @@ class MYVGG13(nn.Module):
         missing = set(own_state.keys()) - set(state_dict.keys())
         if len(missing) > 0:
             raise KeyError('missing keys in state_dict: "{}"'.format(missing))
-        for module in self.modules():
-            if isinstance(module, ContConv2d):
-                module.add_controller()
+
+        # DON'T DO IT HERE!!!!!!!!!!!!!!!!!!!
+        # for module in self.modules():
+        #     if isinstance(module, ContConv2d):
+        #         module.add_controller()
 
 
     def add_controller(self):
@@ -135,5 +149,4 @@ class MYVGG13(nn.Module):
 
     def save(self, best_path):
         torch.save({'state_dict': best_path}, './model_params/param.pth.tar')
-
 

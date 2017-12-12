@@ -34,3 +34,17 @@ class MYCIFAR10(dsets.CIFAR10):
         del self.validat_labels
 
         return validat
+
+
+class MYCAL256():
+
+    path = '256_ObjectCategories/'
+
+    def __init__(self, batch_size):
+        self.batch_size = batch_size
+
+    def get_train_loader(self):
+        pass
+
+    def get_test_loader(self):
+        pass

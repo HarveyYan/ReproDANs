@@ -5,38 +5,38 @@ import torchvision.datasets as dsets
 from torch.autograd import Variable
 from torch.nn import functional
 import os
+import numpy as np
 from mydataset import MYCIFAR10
-
 '''
 Hyperparameters
 '''
 torch.manual_seed(1234)
-dataset_identifier={
-    'MNIST' : 0,
-    'CIFAR10' : 1
+dataset_identifier = {
+    'MNIST': 0,
+    'CIFAR10': 1
 }
-image_size={
-    'MNIST': (28,28),
-    'CIFAR10': (32,32)
+image_size = {
+    'MNIST': (28, 28),
+    'CIFAR10': (32, 32)
 }
 batch_size = 100
-n_iters = 10**5
+n_iters = 10 ** 5
 validation_ratio = 0.1
 
 # pad_vgg options pad all images to 224*224
 # an easy way out, that we could simply use the original vgg model
-def get_data(dataset_name, pad_vgg = True):
-
+def get_data(dataset_name, pad_vgg=False):
     pad = []
     if pad_vgg is True:
         size = image_size[dataset_name]
-        pad.append(int((224 - size[1]) / 2)) # padding to the left
-        pad.append(int((224 - size[1]) / 2)) # padding to the right
-        pad.append(int((224 - size[0]) / 2)) # padding to the top
-        pad.append(int((224 - size[0]) / 2)) # padding to the bottom
+        pad.append(int((224 - size[1]) / 2))  # padding to the left
+        pad.append(int((224 - size[1]) / 2))  # padding to the right
+        pad.append(int((224 - size[0]) / 2))  # padding to the top
+        pad.append(int((224 - size[0]) / 2))  # padding to the bottom
         transform = transforms.Compose(
             [
-                transforms.Pad(*pad),
+                transforms.Pad(pad),
+                # transforms.Scale(224),
                 transforms.ToTensor(),
                 transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
             ]
@@ -49,17 +49,17 @@ def get_data(dataset_name, pad_vgg = True):
             ]
         )
 
-    train_dataset = eval('MY' + dataset_name)(ratio = validation_ratio,
-                                            root='./data',
-                                            train=True,
-                                            transform=transform,
-                                            download=True)
+    train_dataset = eval('MY' + dataset_name)(ratio=validation_ratio,
+                                              root='./data',
+                                              train=True,
+                                              transform=transform,
+                                              download=True)
 
     validat_dataset = train_dataset.get_validat_set()
 
     test_dataset = eval('dsets.' + dataset_name)(root='./data',
                                                  train=False,
-                                                 transform=transforms,
+                                                 transform=transform,
                                                  download=True)
     train_loader = torch.utils.data.DataLoader(dataset=train_dataset,
                                                batch_size=batch_size,
@@ -80,20 +80,42 @@ class ContConv2d(nn.Conv2d):
         super(ContConv2d, self).__init__(*args, **kwargs)
 
     def forward(self, input):
-        comb_weight = self.weight.mm(self.old_filters.view(self.out_channels, -1)).view(self.out_channels, self.in_channels, *self.kernel_size)
+        comb_weight = self.weight.mm(self.old_filters.view(self.out_channels, -1)).view(self.out_channels,
+                                                                                        self.in_channels,
+                                                                                        *self.kernel_size)
         return functional.conv2d(input, comb_weight, self.bias, self.stride,
-                 self.padding, self.dilation, self.groups)
+                                 self.padding, self.dilation, self.groups)
 
     def add_controller(self):
+
+        '''
+
+                w = Variable(
+            torch.Tensor(s).copy_(conv.weight.data))  # Copy the elements from original weights and save them to w
+        w = w.view(s[0], -1)  # flatten the weights
+        # print('w1',w)
+        self.w = w.detach().cuda()  # Returns a new Variable, detached from the current graph
+        '''
         # save old filters and bias, place controller module parameters
-        self.old_filters = self.weight
-        self.old_bias = self.bias
+
+        self.old_filters = Variable(self.weight.data).detach()
+        self.old_bias = Variable(self.bias.data).detach()
+
+        # old_filters = Variable(torch.FloatTensor(list(self.weight.size())).copy_(self.weight.data))
+        # self.old_filters = old_filters.detach().cuda()
+        # old_bias = Variable(torch.FloatTensor(list(self.bias.size())).copy_(self.bias.data))
+        # self.old_bias = old_bias.detach().cuda()
+
+        # self.old_filters = self.weight.clone().detach()
+        # self.old_bias = self.bias.clone().detach()
+        # self.old_bias.requires_grad.detach()
         if torch.cuda.is_available():
-            self.weight = nn.Parameter(torch.eye(self.out_channels).cuda())
+            self.weight = nn.Parameter(torch.eye(self.out_channels, self.out_channels).cuda())
             self.bias = nn.Parameter(torch.randn(self.out_channels).cuda())
         else:
             self.weight = nn.Parameter(torch.eye(self.out_channels))
             self.bias = nn.Parameter(torch.randn(self.out_channels))
+
 
 # TODO, expand to VGG model
 class CNNModel(nn.Module):
@@ -103,7 +125,6 @@ class CNNModel(nn.Module):
         self.dataset_id = dataset_id
         self.load_state = load_state
         self.make_layer()
-
 
     def make_layer(self):
         # load_state = True means we are going to experiment on transfer learning;
@@ -121,17 +142,17 @@ class CNNModel(nn.Module):
             # CIFAR dataset, in channel is 3
             self.cnn1 = conv_layer(in_channels=3, out_channels=16, kernel_size=5, stride=1, padding=0)
         self.relu1 = nn.ReLU()
-        
+
         # Max pool 1
         self.maxpool1 = nn.MaxPool2d(kernel_size=2)
-     
+
         # Convolution 2
         self.cnn2 = conv_layer(in_channels=16, out_channels=32, kernel_size=5, stride=1, padding=0)
         self.relu2 = nn.ReLU()
-        
+
         # Max pool 2
         self.maxpool2 = nn.MaxPool2d(kernel_size=2)
-        
+
         # Fully connected 1 (readout)
         if self.dataset_id == 0:
             self.fc1 = nn.Linear(32 * 4 * 4, 10)
@@ -142,14 +163,14 @@ class CNNModel(nn.Module):
         # Convolution 1
         out = self.cnn1(x)
         out = self.relu1(out)
-        
+
         # Max pool 1
         out = self.maxpool1(out)
-        
+
         # Convolution 2 
         out = self.cnn2(out)
         out = self.relu2(out)
-        
+
         # Max pool 2 
         out = self.maxpool2(out)
 
@@ -161,7 +182,7 @@ class CNNModel(nn.Module):
 
         # Linear function (readout)
         out = self.fc1(out)
-        
+
         return out
 
     def load_state_dict(self, state_dict):
@@ -186,17 +207,17 @@ class CNNModel(nn.Module):
             except:
                 print('While copying the parameter named {}, whose dimensions in the model are'
                       ' {} and whose dimensions in the checkpoint are {}, ...'.format(
-                          name, own_state[name].size(), param.size()))
+                    name, own_state[name].size(), param.size()))
                 raise
 
         # for stationary model structure, there shouldn't be missing states
         missing = set(own_state.keys()) - set(state_dict.keys())
         if len(missing) > 0:
             raise KeyError('missing keys in state_dict: "{}"'.format(missing))
-        
-        for module in self.modules():
-            if isinstance(module, ContConv2d):
-                module.add_controller()
+        # add controller modules here
+        # for module in self.modules():
+        #     if isinstance(module, ContConv2d):
+        #         module.add_controller()
 
     def add_controller(self):
         cont_params = []
@@ -215,10 +236,11 @@ class CNNModel(nn.Module):
         checkpoint = torch.load(path)
         self.load_state_dict(checkpoint['state_dict'])
 
-    def save(self, best_path):
-        torch.save({'state_dict': best_path}, './model_params/param.pth.tar')
+    def save(self, best_path, name):
+        torch.save({'state_dict': best_path}, './model_params/'+name+'.pth')
 
-def get_model(dataset_id, load_state = True):
+
+def get_model(dataset_id, load_state=True):
     model = CNNModel(dataset_id, load_state)
     if load_state:
         if os.path.exists('./model_params/param.pth.tar'):
@@ -231,8 +253,7 @@ def get_model(dataset_id, load_state = True):
     return model
 
 
-
-def train(model, train_loader, validate_loader):
+def train(model, train_loader, validate_loader, save_param = False):
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters())
     # num_epochs is the upper bound
@@ -242,7 +263,8 @@ def train(model, train_loader, validate_loader):
     best_path = None
     failure = 0
 
-    out_file = open('outcome.txt', 'a')
+    validat_loss_acc = []
+    out_file = open('./Result/Simple_CNN_Outcome.txt', 'a')
     out_file.write('TRAINING PHASE\n')
     for epoch in range(num_epochs):
 
@@ -283,28 +305,38 @@ def train(model, train_loader, validate_loader):
 
                 accuracy = 100 * correct / total
                 # Print Loss
-                print('Iteration: {}. Loss: {}. Accuracy: {}'.format(iter, loss.data[0], accuracy))
-                out_file.write('Iteration: {}. Loss: {}. Accuracy: {}'.format(iter, loss.data[0], accuracy) + '\n')
+                print('Iteration: {}. Val_Loss: {}. Val_Accuracy: {}'.format(iter, loss.data[0], accuracy))
+                out_file.write('Iteration: {}. Val_Loss: {}. Val_Accuracy: {}'.format(iter, loss.data[0], accuracy) + '\n')
+                validat_loss_acc.append([loss.data[0],accuracy])
 
                 if accuracy >= best_acc:
-                    prev_acc = accuracy
+                    best_acc = accuracy
                     best_path = model.state_dict()
                     failure = 0
                 else:
                     failure += 1
 
-        if failure >= 10:
+        if failure >= 3:
             break
     out_file.close()
-    if not os.path.exists('./model_params/param.pth.tar'):
-        model.save(best_path)
-    return model.load_state_dict(best_path)
+    # if not os.path.exists('./model_params/param.pth.tar'):
+    #     model.save(best_path)
+
+    if save_param:
+        for dataset_name, dataset_id in dataset_identifier.items():
+            if dataset_id == model.dataset_id:
+                break
+        model.save(best_path, dataset_name)
+
+    np.save('./Result/Simple_CNN_MNIST_CIFAR10.npy', np.array(validat_loss_acc))
+    model.load_state_dict(best_path)
+    return model
 
 
 def _test(model, test_loader):
     correct = 0
     total = 0
-    out_file = open('outcome.txt', 'a')
+    out_file = open('./Result/Simple_CNN_Outcome.txt', 'a')
     out_file.write('TESTING PHASE\n')
     for images, labels in test_loader:
         if torch.cuda.is_available():
@@ -327,10 +359,11 @@ def _test(model, test_loader):
     out_file.write('Test Data Accuracy: {}'.format(accuracy) + '\n')
     out_file.close()
 
+
 if __name__ == '__main__':
     # should get dataset data from argparse
     dataset_name = 'CIFAR10'
     train_loader, validate_loader, test_loader, len_train, len_test = get_data(dataset_name)
-    init_model = get_model(dataset_identifier[dataset_name], load_state=True)
+    init_model = get_model(dataset_identifier[dataset_name], load_state=False)
     model = train(init_model, train_loader, validate_loader)
     _test(model, test_loader)
