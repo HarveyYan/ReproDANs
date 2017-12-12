@@ -1,0 +1,22 @@
+TRAINING PHASE
+TRAINING PHASE
+Iteration: 500. Val_Loss: 1.4505178928375244. Val_Accuracy: 41.69
+Iteration: 1000. Val_Loss: 1.1668602228164673. Val_Accuracy: 61.3
+Iteration: 1500. Val_Loss: 0.6755515933036804. Val_Accuracy: 69.8
+Iteration: 2000. Val_Loss: 0.5917549729347229. Val_Accuracy: 74.25
+Iteration: 2500. Val_Loss: 0.6974535584449768. Val_Accuracy: 76.57
+Iteration: 3000. Val_Loss: 0.7329851388931274. Val_Accuracy: 78.21
+Iteration: 3500. Val_Loss: 0.6159794330596924. Val_Accuracy: 80.92
+Iteration: 4000. Val_Loss: 0.395696759223938. Val_Accuracy: 82.18
+Iteration: 4500. Val_Loss: 0.5318752527236938. Val_Accuracy: 82.42
+Iteration: 5000. Val_Loss: 0.2131953090429306. Val_Accuracy: 83.11
+Iteration: 5500. Val_Loss: 0.23037095367908478. Val_Accuracy: 83.06
+Iteration: 6000. Val_Loss: 0.21530036628246307. Val_Accuracy: 83.22
+Iteration: 6500. Val_Loss: 0.1451890915632248. Val_Accuracy: 83.01
+Iteration: 7000. Val_Loss: 0.09939856827259064. Val_Accuracy: 82.98
+Iteration: 7500. Val_Loss: 0.10767538100481033. Val_Accuracy: 83.26
+Iteration: 8000. Val_Loss: 0.08208320289850235. Val_Accuracy: 82.89
+Iteration: 8500. Val_Loss: 0.15400519967079163. Val_Accuracy: 82.51
+Iteration: 9000. Val_Loss: 0.13686545193195343. Val_Accuracy: 82.19
+TESTING PHASE
+Test Data Accuracy: 82.22

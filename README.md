@@ -6,3 +6,4 @@ They are the reproducibility test for the being-reviewed paper "Incrimental Lear
 as a project for COMP 652 Machine Learning.
 
 [This is another fancy reproduction, check it out!](https://github.com/jianingsun21/cnn_incremental-learning)
+[Code written by the author of "Incrimental Learning Through DAN" can be foubd here](https://github.com/rosenfeldamir/incremental_learning)
