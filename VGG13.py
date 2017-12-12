@@ -37,9 +37,9 @@ class MYVGG13(nn.Module):
 
         if pretrained:
             if batch_norm:
-                super(MYVGG13, self).load_state_dict(model_zoo.load_url(self.model_urls['vgg13_bn']))
+                self.load_state_dict(model_zoo.load_url(self.model_urls['vgg13_bn']))
             else:
-                super(MYVGG13, self).load_state_dict(model_zoo.load_url(self.model_urls['vgg13']))
+                self.load_state_dict(model_zoo.load_url(self.model_urls['vgg13']))
 
     def make_layers(self):
         layers = []
@@ -104,9 +104,8 @@ class MYVGG13(nn.Module):
         own_state = self.state_dict()
         for name, param in state_dict.items():
             # only copy the filters in convolutional layers
-            # TODO no name starts with cnn!!!!
-            # if not name.lower().startswith('cnn'):
-            #     continue
+            if name.lower().startswith('classifier'):
+                continue
             if name not in own_state:
                 raise KeyError('unexpected key "{}" in state_dict'.format(name))
             if isinstance(param, nn.Parameter):
@@ -120,9 +119,10 @@ class MYVGG13(nn.Module):
                     name, own_state[name].size(), param.size()))
                 raise
         # for stationary model structure, there shouldn't be missing states
-        missing = set(own_state.keys()) - set(state_dict.keys())
-        if len(missing) > 0:
-            raise KeyError('missing keys in state_dict: "{}"'.format(missing))
+        # for controlled modules, we should expect classifiers to be missing
+        # missing = set(own_state.keys()) - set(state_dict.keys())
+        # if len(missing) > 0:
+        #     raise KeyError('missing keys in state_dict: "{}"'.format(missing))
 
         # DON'T DO IT HERE!!!!!!!!!!!!!!!!!!!
         # for module in self.modules():
