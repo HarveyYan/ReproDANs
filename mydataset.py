@@ -142,7 +142,7 @@ class CAL256Iter():
                     if not (i - 1) % self.batch_size == 0:
                         yield (batch[:(i - 1) % self.batch_size], batch_labels[:(i - 1) % self.batch_size])
             else:
-                batch = torch.FloatTensor(self.batch_size, 3, 32, 32)
+                batch = torch.FloatTensor(self.batch_size, 3, 64, 64)
                 batch_labels = torch.LongTensor(self.batch_size)
                 for i, file in enumerate(self.data):
                     sub_folder = file.split('_')[0] + '.' + self.legend[file.split('_')[0]] + '/'
@@ -158,7 +158,7 @@ class CAL256Iter():
         else:
             if self.mode == 'train' or self.mode=='valid':
                 while True:
-                    batch = torch.FloatTensor(self.batch_size, 3, 32, 32)
+                    batch = torch.FloatTensor(self.batch_size, 3, 64, 64)
                     batch_labels = torch.LongTensor(self.batch_size)
                     for i, img in enumerate(self.loaded_data):
                         batch[i % self.batch_size] = img
@@ -168,7 +168,7 @@ class CAL256Iter():
                     if not (i - 1) % self.batch_size == 0:
                         yield (batch[:(i - 1) % self.batch_size], batch_labels[:(i - 1) % self.batch_size])
             else:
-                batch = torch.FloatTensor(self.batch_size, 3, 32, 32)
+                batch = torch.FloatTensor(self.batch_size, 3, 64, 64)
                 batch_labels = torch.LongTensor(self.batch_size)
                 for i, file in enumerate(self.data):
                     sub_folder = file.split('_')[0] + '.' + self.legend[file.split('_')[0]] + '/'
