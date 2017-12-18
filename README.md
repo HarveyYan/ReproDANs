@@ -18,7 +18,7 @@ Test accuracy:
 | VGGB S       | 82.22   |
 | DAN noise    | 77.48   |
 | DAN imagenet | 86.52   |
-
+| DAN cal256   | 79.21   |
 Some trivial details in our experiments:
 * When initializing the weights in controller modules, we use Identity matrix which is better than initializing randomly; the authors used "Kaiming-uniform" distribution which is interesting
 * Adam optimizer is considerably faster in terms of convergence speed, compared to SGD optimizer
