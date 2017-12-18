@@ -4,9 +4,9 @@ import torch.nn as nn
 import torchvision.transforms as transforms
 import torchvision.datasets as dsets
 from torch.autograd import Variable
-import os
 from mydataset import MYCIFAR10
 import numpy as np
+import torch.utils.data.dataloader
 
 '''
 Hyperparameters
